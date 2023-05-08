@@ -1,7 +1,22 @@
+import json
+from time import sleep
+
 from requests import request
-from configurations import CLIENT_ID, TOKEN
+
+from configurations import CLIENT_ID, FOREMAN_TOKEN
 
 URL = f'https://api.foreman.mn/api/v2/clients/{CLIENT_ID}'
+
+
+def _get_json_response(url: str, headers) -> json:
+    tries = 5
+    while tries != 0:
+        try:
+            response = request('get', url, headers=headers).json()
+            return response
+        except json.decoder.JSONDecodeError:
+            sleep(5)
+    raise Exception(f'No API response: {url}. Tried 5 times')
 
 
 def _get_total_miners() -> int:
@@ -9,7 +24,9 @@ def _get_total_miners() -> int:
     Находит общее количество майнеров по Client_ID
     :return: общее количество майнеров
     """
-    response = request('get', URL, headers={'Authorization': 'Token ' + TOKEN}).json()
+    response = _get_json_response(
+        URL, {'Authorization': 'Token ' + FOREMAN_TOKEN}
+    )
     try:
         return response[0]['miners']['total']
     except KeyError:
@@ -25,17 +42,19 @@ def get_foreman_api_miners() -> dict:
     """
     total = _get_total_miners()
     offset = 0
-    result = {'total': total, 'miners': {}}
+    result = {}
     while offset < total:
         url = URL + f'/miners?limit=500&offset={offset}'
-        response = request('get', url, headers={'Authorization': 'Token ' + TOKEN})
-        for miner in response.json()["results"]:
+        response = _get_json_response(
+            url, {'Authorization': 'Token ' + FOREMAN_TOKEN}
+        )
+        for miner in response["results"]:
             ip = miner.get('ip')
             pools = miner.get("pools", [])
             if pools:
                 worker = pools[0].get("worker", None)
             else:
                 worker = None
-            result['miners'][ip] = worker
+            result[ip] = worker
         offset += 500
     return result

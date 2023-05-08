@@ -1,53 +1,51 @@
 import asyncio
 import re
 from ipaddress import IPv4Address
-from models import Asic
 
 PORT = 4028
 
 
-async def _get_workername(ip: str, command: str = '{"command": "pools"}') -> str or None:
+async def _get_workername(ip: str) -> str:
     """
     Функция получения имени воркера по IP
     :param ip:
     :param command:
     :return:
     """
+    command = '{"command": "pools"}'
     try:
-        reader, writer = await asyncio.open_connection(ip, PORT)
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(ip, PORT), timeout=10
+        )
         writer.write(command.encode())
         await writer.drain()
-        raw_data = await reader.read(4096)
+        raw_data = await asyncio.wait_for(reader.read(4096), timeout=3)
         match = re.search(r'\"User\":\"(?P<name>[^\"]*)', str(raw_data))
         if match:
-            workername = match.group('name')
-            return workername
-        return None
-    except Exception as e:
-        print(f"Error retrieving workername for IP {ip}: {e}")
-        return
+            return match.group('name')
+        return 'Unknown'
+    except (asyncio.TimeoutError, Exception):
+        return 'Unknown'
 
 
-async def _check_online(ip: str) -> Asic | None:
+async def _check_online(ip: str) -> bool:
     """
     Проверяет IP на наличие открытого порта 4028
     :param ip:
-    :return: ip, online, workername
+    :return: True если порт открыт, иначе False
     """
     try:
-        _, writer = await asyncio.wait_for(asyncio.open_connection(ip, PORT), timeout=3)
+        _, writer = await asyncio.wait_for(
+            asyncio.open_connection(ip, PORT), timeout=3
+        )
         writer.close()
         await writer.wait_closed()
-        workername = await _get_workername(ip)
-        if workername is None:
-            return None
-        asic = Asic(ip, workername)
-        return asic
+        return True
     except (asyncio.TimeoutError, ConnectionRefusedError, OSError):
-        return None
+        return False
 
 
-async def scan_range(start_ip: str, end_ip: str) -> list:
+async def scan_range(start_ip: str, end_ip: str) -> dict:
     """
     Сканирует диапазон сети и возвращает все майнеры онлайн с именами
     :param start_ip:
@@ -62,5 +60,31 @@ async def scan_range(start_ip: str, end_ip: str) -> list:
         ip = str(IPv4Address(ip_int))
         tasks.append(asyncio.ensure_future(_check_online(ip)))
 
-    results = [x for x in await asyncio.gather(*tasks) if x is not None]
-    return results
+    online_ips = [ip for ip, online in zip(
+        range(int(start_ip), int(end_ip) + 1
+              ), await asyncio.gather(*tasks)) if online]
+
+    workername_tasks = [asyncio.ensure_future(
+        _get_workername(str(IPv4Address(ip)))
+    ) for ip in online_ips]
+    worker_names = await asyncio.gather(*workername_tasks)
+
+    return {str(IPv4Address(k)): v for k, v in zip(online_ips, worker_names)}
+
+
+def scan_all_ranges(address: set) -> dict:
+    """
+    Сканирует сет всех диапозонов адресов
+    :param address:
+    :return: словарь с майнерами {ip: workername}
+    """
+    scanned = {}
+    for ips in address:
+        loop = asyncio.get_event_loop()
+        scanned.update(loop.run_until_complete(scan_range(ips[0], ips[1])))
+    return scanned
+
+
+if __name__ == '__main__':
+    dct = scan_all_ranges({('10.6.61.10', '10.6.61.15')})
+    print(dct)
