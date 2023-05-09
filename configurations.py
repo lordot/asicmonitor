@@ -1,5 +1,5 @@
 from os import getenv
-
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,7 +16,8 @@ def get_addresses() -> set[tuple[str, ...]]:
     Функция считывает адреса из файла config.ini
     :return:
     """
-    with open('config.ini', 'r') as file:
+    path = os.path.dirname(os.path.realpath(__file__))
+    with open(os.path.join(path, 'config.ini'), 'r') as file:
         return set(
             tuple(x.replace('\n', '').split('-')) for x in file.readlines()
         )

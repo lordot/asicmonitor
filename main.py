@@ -12,7 +12,7 @@ def main():
         missed = {
             'scanned': 10,
             'foreman': 20,
-            'miners': {
+            'missed': {
                 '192.168.1.1': 'worker1',
                 '192.168.1.2': 'worker2',
                 '192.168.1.3': 'worker3'
