@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEBUG = False
 FOREMAN_TOKEN = os.getenv('FOREMAN_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 CONFIG_FILE = 'config.ini'
