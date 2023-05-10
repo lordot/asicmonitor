@@ -1,13 +1,31 @@
 import asyncio
-from time import sleep
+import configparser
 
-from configurations import CHAT_ID, DEBUG, get_addresses
-from foreman import get_foreman_api_miners
+from configurations import CONFIG_FILE, DEBUG
 from messages import send_report
-from scanner import scan_all_ranges
+from sites import Site
 
 
-def main():
+def read_config(config_file: str) -> list[Site]:
+    """
+    Читает конфиг файл и создает объекты класса Config
+    """
+    sites = []
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    for site in config.sections():
+        lst = config[site]['network_ranges'].split('\n')
+        ranges = set(tuple(x.replace('\n', '').split('-')) for x in lst)
+        sites.append(Site(
+            config[site].name,
+            int(config[site]['chat_id']),
+            config[site]['client_id'],
+            ranges
+        ))
+    return sites
+
+
+async def main():
     if DEBUG:
         missed = {
             'scanned': 10,
@@ -19,27 +37,32 @@ def main():
             }
         }
     else:
-        # Получение майнеров, отсканированных в заданных диапазонах
-        scanned = scan_all_ranges(get_addresses())
-        print(f"Total scanned: {len(scanned)}")
+        for site in read_config(CONFIG_FILE):
+            # Получение майнеров, отсканированных в заданных диапазонах
+            scanned = await site.scan_all()
+            print(f"Total scanned: {len(scanned)}")
 
-        # Получение майнеров, зарегистрированных в Foreman API
-        foreman = get_foreman_api_miners()
-        print(f"Total in Foreman: {len(foreman)}")
+            print('Вырубай')
+            await asyncio.sleep(10)
+            # Получение майнеров, зарегистрированных в Foreman API
+            foreman = site.scan_foreman()
+            print(f"Total in Foreman: {len(foreman)}")
 
-        # Поиск отсутствующих майнеров в Foreman
-        missed = {
-            'scanned': len(scanned),
-            'foreman': len(foreman),
-            'missed': {}
-        }
-        for ip, workername in scanned.items():
-            if ip not in foreman and workername not in foreman.values():
-                missed.get('missed')[ip] = workername
+            # Поиск отсутствующих майнеров в Foreman
+            missed = {
+                'scanned': len(scanned),
+                'foreman': len(foreman),
+                'missed': {}
+            }
+            for ip, workername in scanned.items():
+                if ip not in foreman and workername not in foreman.values():
+                    missed.get('missed')[ip] = workername
 
-    # Отправка отчета в телеграм
-    asyncio.run(send_report(CHAT_ID, missed))
+            # Отправка отчета в телеграм
+            await send_report(site.chat_id, missed)
 
+            print('Включай!')
+            await asyncio.sleep(10)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
