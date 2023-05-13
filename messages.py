@@ -1,3 +1,5 @@
+import logging
+
 from telegram import Bot
 from telegram.constants import ParseMode
 
@@ -21,3 +23,4 @@ async def send_report(chat_id, missed):
     message = _create_message(missed)
     async with bot:
         await bot.send_message(chat_id, message, ParseMode.HTML)
+    logging.info("The message sent to telegram")
