@@ -12,17 +12,20 @@ def read_config(config_file: str) -> list[Site]:
     """
     Читает конфиг файл и создает объекты класса Config
     """
-    file = os.path.join(os.path.dirname(os.path.realpath(__file__)), config_file)
+    file = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)),
+        config_file
+    )
     sites = []
     config = configparser.ConfigParser()
     config.read(file)
     for site in config.sections():
-        lst = config[site]['network_ranges'].split('\n')
-        ranges = set(tuple(x.replace('\n', '').split('-')) for x in lst)
+        lst = config[site]["network_ranges"].split("\n")
+        ranges = set(tuple(x.replace("\n", "").split("-")) for x in lst)
         sites.append(Site(
             config[site].name,
-            int(config[site]['chat_id']),
-            config[site]['client_id'],
+            int(config[site]["chat_id"]),
+            config[site]["client_id"],
             ranges
         ))
     return sites
@@ -30,10 +33,10 @@ def read_config(config_file: str) -> list[Site]:
 
 async def main():
     configure_logging()
-    logging.info('Script started')
+    logging.info("Script started")
     # Перебираем все конфигурации из файла CONFIG_FILE
     for site in read_config(CONFIG_FILE):
-        logging.info(f'Start scanning: {site.name}')
+        logging.info(f"Start scanning: {site.name}")
         # Получение майнеров, отсканированных в заданных диапазонах
         scanned = await site.scan_all()
         logging.info(f"Total scanned: {len(scanned)}")
@@ -43,18 +46,19 @@ async def main():
         logging.info(f"Total in Foreman: {len(foreman)}")
 
         # Поиск отсутствующих майнеров в Foreman
-        missed = {
-            'scanned': len(scanned),
-            'foreman': len(foreman),
-            'missed': {}
+        miners = {
+            "scanned": len(scanned),
+            "foreman": len(foreman),
+            "missed": {}
         }
         for ip, workername in scanned.items():
             if ip not in foreman and workername not in foreman.values():
-                missed.get('missed')[ip] = workername
-        logging.info(f'Missed: {len(missed.get("missed"))}')
+                miners.get("missed")[ip] = workername
+        logging.info(f"Missed: {len(miners.get('missed'))}")
 
-        # Отправка отчета в телеграм
-        await send_report(site.chat_id, missed)
+        if len(miners.get("missed")) > 0:
+            # Отправка отчета в телеграм
+            await send_report(site.chat_id, miners)
 
     logging.info("Script finished")
 

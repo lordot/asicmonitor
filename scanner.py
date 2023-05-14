@@ -6,9 +6,8 @@ from configurations import ASIC_PORT
 
 
 class ScannerMixin:
-    # def __init__(self, name: str, ranges: set):
-    #     self.name = name
-    #     self.ranges = ranges
+    def __init__(self, ranges: set):
+        self.ranges = ranges
 
     async def _get_workername(self, ip: str) -> str:
         """
