@@ -6,6 +6,7 @@ from requests import request
 from configurations import API_URL, FOREMAN_TOKEN
 
 NUM_TRIES = 5
+API_TIMEOUT = 1
 
 
 class ForemanMixin:
@@ -19,11 +20,12 @@ class ForemanMixin:
         Tries to get json response for a given number of attempts.
         """
         for _ in range(NUM_TRIES):
-            try:
-                response = request("get", url, headers=headers).json()
-                return response
-            except json.decoder.JSONDecodeError:
+            response = request("get", url, headers=headers)
+            if response.status_code == 200:
+                return response.json()
+            else:
                 sleep(5)
+
         raise Exception(f"No API response: {url}. Tried {NUM_TRIES} times")
 
     def scan_foreman(self) -> dict:
@@ -37,7 +39,7 @@ class ForemanMixin:
             url_offset_limit = self.url + f"/miners?limit=500&offset={offset}"
             response = self._get_json_response(url_offset_limit, self.headers)
 
-            if not response.get('results'):
+            if response is None or not response.get('results'):
                 break
 
             for miner in response["results"]:
@@ -46,6 +48,7 @@ class ForemanMixin:
                 worker = pools[0].get("worker", None) if pools else None
                 results[ip] = worker
 
+            sleep(API_TIMEOUT)
             offset += 500
 
         return results
