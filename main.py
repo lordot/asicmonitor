@@ -3,9 +3,9 @@ import configparser
 import logging
 import os
 
-from configurations import CONFIG_FILE, configure_logging
-from messages import send_report
-from sites import Site
+from src.configurations import CONFIG_FILE, configure_logging
+from src.messages import send_report
+from src.sites import Site
 
 
 def read_config(config_file: str) -> list[Site]:

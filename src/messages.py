@@ -3,7 +3,7 @@ import logging
 from telegram import Bot
 from telegram.constants import ParseMode
 
-from configurations import TELEGRAM_TOKEN
+from src.configurations import TELEGRAM_TOKEN
 
 
 def _create_message(miners: dict) -> str:

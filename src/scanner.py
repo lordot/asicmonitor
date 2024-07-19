@@ -2,7 +2,7 @@ import asyncio
 import re
 from ipaddress import IPv4Address
 
-from configurations import ASIC_PORT
+from src.configurations import ASIC_PORT
 
 
 class ScannerMixin:

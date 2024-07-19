@@ -12,7 +12,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CONFIG_FILE = "config.ini"
 API_URL = "https://api.foreman.mn/api/v2/clients/"
 ASIC_PORT = 4028
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(__file__).parent.parent
 
 
 def configure_logging():

@@ -1,5 +1,5 @@
-from foreman import ForemanMixin
-from scanner import ScannerMixin
+from src.foreman import ForemanMixin
+from src.scanner import ScannerMixin
 
 
 class Site(ScannerMixin, ForemanMixin):

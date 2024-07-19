@@ -3,7 +3,7 @@ from time import sleep
 
 from requests import request
 
-from configurations import API_URL, FOREMAN_TOKEN
+from src.configurations import API_URL, FOREMAN_TOKEN
 
 NUM_TRIES = 5
 API_TIMEOUT = 1
