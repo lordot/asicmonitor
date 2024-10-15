@@ -130,5 +130,5 @@ dmypy.json
 
 .idea/
 
-config.ini
+config/config.ini
 setup.cfg
